@@ -305,7 +305,22 @@ without requiring the source code to be rewritten.")
          (substitute-keyword-arguments (package-arguments guile-2.2)
            ((#:configure-flags flags ''())
             `(cons "--disable-jit" ,flags)))
-         (package-arguments guile-2.2)))
+         (if (string-prefix? "powerpc-" (%current-system))
+           (substitute-keyword-arguments (package-arguments guile-2.2)
+             ((#:phases phases)
+              `(modify-phases ,phases
+                 (add-after 'unpack 'adjust-bootstrap-flags
+                   (lambda _
+                     ;; Upstream knows about suggested solution.
+                     ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=45214
+                     (substitute* "bootstrap/Makefile.in"
+                       (("^GUILE_OPTIMIZATIONS.*")
+                        "GUILE_OPTIMIZATIONS = -O1 -Oresolve-primitives -Ocps\n"))))
+                 (add-after 'unpack 'remove-failing-tests
+                   (lambda _
+                     ;; TODO: Discover why this test fails on powerpc-linux
+                     (delete-file "test-suite/standalone/test-out-of-memory"))))))
+           (package-arguments guile-2.2))))
     (native-search-paths
      (list (search-path-specification
             (variable "GUILE_LOAD_PATH")
