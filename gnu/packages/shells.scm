@@ -144,11 +144,6 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
            (lambda* (#:key inputs #:allow-other-keys)
              (let ((coreutils (assoc-ref inputs "coreutils"))
                    (bash (assoc-ref inputs "bash")))
-               ;; This test fails
-               (delete-file "tests/checks/pipeline-pgroup.fish")
-               ;; These try to open a terminal
-               (delete-file "tests/checks/interactive.fish")
-               (delete-file "tests/checks/login-interactive.fish")
                ;; These contain absolute path references
                (substitute* "src/fish_tests.cpp"
                  (("/bin/echo" echo) (string-append coreutils echo))
