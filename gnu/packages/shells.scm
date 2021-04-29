@@ -165,7 +165,7 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
                  (("/bin/echo" echo) (string-append coreutils echo))
                  (("/bin/sh" sh) (string-append bash sh))
                  (("/bin/ls" ls) (string-append coreutils ls)))
-               (substitute* (find-files "tests" ".*\\.(in|out|err)$")
+               (substitute* "tests/checks/vars_as_commands.fish"
                  (("/usr/bin") (string-append coreutils "/bin")))
                #t)))
          ;; Source /etc/fish/config.fish from $__fish_sysconf_dir/config.fish.
