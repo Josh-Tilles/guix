@@ -111,19 +111,19 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
 (define-public fish
   (package
     (name "fish")
-    (version "3.1.2")
+    (version "3.2.0")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://github.com/fish-shell/fish-shell/"
                            "releases/download/" version "/"
-                           "fish-" version ".tar.gz"))
+                           "fish-" version ".tar.xz"))
        (sha256
-        (base32 "1vblmb3x2k2cb0db5jdyflppnlqsm7i6jjaidyhmvaaw7ch2gffm"))
+        (base32 "04cjdyy4y11khz2kry4bzipfh69k5zkapvs1gpj7fsvakznr60jg"))
        (modules '((guix build utils)))
        (snippet
         '(begin
-           (delete-file-recursively "pcre2-10.32") #t))))
+           (delete-file-recursively "pcre2") #t))))
     (build-system cmake-build-system)
     (inputs
      `(("fish-foreign-env" ,fish-foreign-env)
