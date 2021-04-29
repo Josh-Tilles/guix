@@ -156,7 +156,7 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
                  (("/bin -" bin) (string-append coreutils bin))
                  (((string-append
                     "do_test\\(is_potential_path\\("
-                    "L\"/usr\", wds, vars, PATH_REQUIRE_DIR\\)\\);"))
+                    "L\"/usr\", wds, ctx, PATH_REQUIRE_DIR\\)\\);"))
                   ""))
                (substitute*
                  (append (find-files "tests" ".*\\.(in|out|err)$")
