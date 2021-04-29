@@ -132,7 +132,7 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
        ; for 'fish --help'
        ("groff" ,groff)))
     (arguments
-     '(#:configure-flags '("-DFISH_USE_SYSTEM_PCRE2")  ; I.e., disregard the bundled PCRE2.
+     '(#:configure-flags '("-DFISH_USE_SYSTEM_PCRE2=ON")  ; I.e., disregard the bundled PCRE2.
        #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'set-env
