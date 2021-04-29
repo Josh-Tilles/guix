@@ -120,22 +120,20 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
                            "fish-" version ".tar.xz"))
        (sha256
         (base32 "04cjdyy4y11khz2kry4bzipfh69k5zkapvs1gpj7fsvakznr60jg"))
-       (modules '((guix build utils)))
-       (snippet
-        '(begin
-           (delete-file-recursively "pcre2") #t))))
+       (modules '((guix build utils)))))
     (build-system cmake-build-system)
     (inputs
      `(("fish-foreign-env" ,fish-foreign-env)
        ("ncurses" ,ncurses)
-       ("pcre2" ,pcre2)      ; don't use the bundled PCRE2
+       ("pcre2" ,pcre2)
        ("python" ,python)))  ; for fish_config and manpage completions
     (native-inputs
      `(("doxygen" ,doxygen)
        ; for 'fish --help'
        ("groff" ,groff)))
     (arguments
-     '(#:phases
+     '(#:configure-flags '("-DFISH_USE_SYSTEM_PCRE2")  ; I.e., disregard the bundled PCRE2.
+       #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'set-env
            (lambda _
