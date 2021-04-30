@@ -208,8 +208,8 @@ between various shells or commands.")
          "01q0cl04ljf214z6s3g256gsxx3pqsgaf6ac1zh0vrq5bnhnr85h"))))
     (build-system python-build-system)
     (arguments
-     `(#:python ,python-2
-       #:tests? #f ; no tests
+     `(#:python ,python
+       ;;#:tests? #f ; no tests
        #:phases
        (modify-phases %standard-phases
          (add-before 'build 'patch-path-constants
@@ -243,18 +243,25 @@ are already there.")
              (file-name (git-file-name name version))
              (sha256
               (base32
-               "1y18619pmhfl0vrf4w0h75ybkkwgi9wcb7d9kv4n8drg1xp4aw4w"))))
+               "0yk53jn7wafklixclka17wyjjs2g5giigjr2bd0xzy10nrzwp7c9"))))
     (build-system go-build-system)
     (arguments
      '(#:import-path "github.com/direnv/direnv"
+       ;;#:install-source? false
+       #:make-flags (list (string-append "BASH_PATH=" bash "bin/bash")
+                          (string-append "PREFIX=" out))
        #:phases
        (modify-phases %standard-phases
-         (add-after 'unpack 'delete-vendor
-           (lambda _
-             ;; Using a snippet causes issues with the name of the directory,
-             ;; so delete the extra source code here.
-             (delete-file-recursively "src/github.com/direnv/direnv/vendor")
-             #t))
+         (replace 'build 'build-with-their-GNUmakefile
+           (lambda* (#:key inputs #:allow-other-keys)
+             (let ((bash (assoc-ref inputs "bash")))
+               (with-directory-excursion "src/github.com/direnv/direnv"
+               (invoke "make" (string-append "BASH_PATH="
+                                             bash
+                                             "/bin/bash"))
+         (replace 'install 'install-with-their-GNUmakefile
+           (lambda* (#:key outputs #:allow-other-keys)
+             "make install PREFIX=(assoc-ref outputs "out")
          (add-after 'install 'install-manpages
            (lambda* (#:key outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))
@@ -272,15 +279,17 @@ are already there.")
                  ;; The following file needs to be writable so it can be
                  ;; modified by the testsuite.
                  (make-file-writable "test/scenarios/base/.envrc")
+                 ;; maybe `export HOME=$(mktemp -d); make test-go test-bash test-fish test-zsh`
                  (invoke "make" "test")
                  ;; Clean up from the tests, especially so that the extra
                  ;; direnv executable that's generated is removed.
                  (invoke "make" "clean")))
              #t)))))
     (native-inputs
-     `(("go-github-com-burntsushi-toml" ,go-github-com-burntsushi-toml)
-       ("go-github-com-direnv-go-dotenv" ,go-github-com-direnv-go-dotenv)
-       ("which" ,which)))
+     `(;;("go-github-com-burntsushi-toml" ,go-github-com-burntsushi-toml)
+       ;;("go-github-com-direnv-go-dotenv" ,go-github-com-direnv-go-dotenv)
+       ;;("which" ,which)
+       ))
     (home-page "https://direnv.net/")
     (synopsis "Environment switcher for the shell")
     (description
