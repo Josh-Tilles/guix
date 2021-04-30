@@ -130,7 +130,9 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
     (native-inputs
      `(("doxygen" ,doxygen)
        ; for 'fish --help'
-       ("groff" ,groff)))
+       ("groff" ,groff)
+       ; one of the tests expects `ps`
+       ("procps" ,procps)))
     (arguments
      '(#:configure-flags '("-DFISH_USE_SYSTEM_PCRE2=ON")  ; I.e., disregard the bundled PCRE2.
        #:phases
