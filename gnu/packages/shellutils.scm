@@ -198,7 +198,7 @@ between various shells or commands.")
 (define-public trash-cli
   (package
     (name "trash-cli")
-    (version "0.17.1.14")
+    (version "0.21.4.18")
     (source
      (origin
        (method url-fetch)
@@ -234,7 +234,7 @@ are already there.")
 (define-public direnv
   (package
     (name "direnv")
-    (version "2.15.2")
+    (version "2.28.0")
     (source
      (origin (method git-fetch)
              (uri (git-reference
