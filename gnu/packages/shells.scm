@@ -202,7 +202,7 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
                  "# Enable completions, functions and configurations in user's"
                  " and system's guix profiles by adding them to __extra_*"
                  " variables.\n"
-                 "set -l __guix_profile_paths ~/.guix-profile"
+                 "set --local __guix_profile_paths ~/.guix-profile"
                  " /run/current-system/profile\n"
                  "set __extra_completionsdir"
                  " $__guix_profile_paths\"/etc/fish/completions\""
@@ -233,7 +233,7 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
                  (assoc-ref inputs "fish-foreign-env") "/share/fish/functions"
                  " $__fish_datadir/functions\n"
                  "    fenv source /etc/profile\n"
-                 "    set -e fish_function_path\n"
+                 "    set --erase fish_function_path\n"
                  "end\n")
                 port)
                (close-port port))
