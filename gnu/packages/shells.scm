@@ -132,7 +132,9 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
        ; for 'fish --help'
        ("groff" ,groff)
        ; one of the tests expects `ps`
-       ("procps" ,procps)))
+       ("procps" ,procps)
+       ; “interactive” tests are skipped if pexpect is unavailable
+       ("python-pexpect" ,python-pexpect)))
     (arguments
      '(#:configure-flags '("-DFISH_USE_SYSTEM_PCRE2=ON")  ; I.e., disregard the bundled PCRE2.
        #:phases
