@@ -111,7 +111,7 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
 (define-public fish
   (package
     (name "fish")
-    (version "3.2.1")
+    (version "3.2.2")
     (source
      (origin
        (method url-fetch)
@@ -119,7 +119,7 @@ direct descendant of NetBSD's Almquist Shell (@command{ash}).")
                            "releases/download/" version "/"
                            "fish-" version ".tar.xz"))
        (sha256
-        (base32 "0nxgqdjmsrxn0bfxjg22h9b034h1m2if89fqgpqqsxykj109zr6q"))
+        (base32 "02a0dgz5cy4iv3ysvl5kzzd4ji8pxqv93zd45041plcki0ddli2r"))
        (modules '((guix build utils)))))
     (build-system cmake-build-system)
     (inputs
