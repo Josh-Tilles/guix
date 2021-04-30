@@ -424,13 +424,13 @@ when typing parentheses directly or commenting out code line by line.")
 (define-public emacs-project
   (package
     (name "emacs-project")
-    (version "0.5.4")
+    (version "0.6.0")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://elpa.gnu.org/packages/project-" version ".tar"))
        (sha256
-        (base32 "0arjvhzzcf8b80w94yvpgfdlhsjwf5jk1r7vcai5a4dg3bi9cxyb"))))
+        (base32 "0m0r1xgz1ffx6mi2gjz1dkgrn89sh4y5ysi0gj6p1w05bf8p0lc0"))))
     (build-system emacs-build-system)
     (propagated-inputs `(("emacs-xref" ,emacs-xref)))
     (home-page "http://elpa.gnu.org/packages/project.html")
@@ -2307,14 +2307,14 @@ as a library for other Emacs packages.")
 (define-public emacs-auctex
   (package
     (name "emacs-auctex")
-    (version "13.0.10")
+    (version "13.0.11")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://elpa.gnu.org/packages/"
                            "auctex-" version ".tar"))
        (sha256
-        (base32 "150b0xh71xwva7599arjapspdxyy70yyk6a5nabaq22w3dcpasb5"))))
+        (base32 "0sy4f1n38q58vyzw5l0f80ci3j99rb25gbwj0frl0pglfmgzl44k"))))
     (build-system emacs-build-system)
     ;; We use 'emacs' because AUCTeX requires dbus at compile time
     ;; ('emacs-minimal' does not provide dbus).
@@ -9248,7 +9248,7 @@ and tooling.")
 (define-public emacs-elfeed
   (package
     (name "emacs-elfeed")
-    (version "3.4.0")
+    (version "3.4.1")
     (source
      (origin
        (method git-fetch)
@@ -9257,7 +9257,7 @@ and tooling.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1y95410hrcp23zc84sn79bxla9xr2fqh7wwagza05iaprv7zbbw0"))))
+        (base32 "1ghdvfn4f9y69r59i1ga9b3ib1r8sbqg6q1v5rz3f9paagfavrd1"))))
     (build-system emacs-build-system)
     (arguments
      `(#:tests? #t
@@ -23822,14 +23822,14 @@ well as an option for visually flashing evaluated s-expressions.")
 (define-public emacs-tramp
   (package
     (name "emacs-tramp")
-    (version "2.5.0.3")
+    (version "2.5.0.4")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://elpa.gnu.org/packages/"
                            "tramp-" version ".tar"))
        (sha256
-        (base32 "0c77d1ihn17lzk9jb7ss346ryprnbii1zmijl6zj0kk4lm8fpfl3"))))
+        (base32 "0yk4ckk45gkjp24nfywz49j8pazq33m6pga3lirb5h6zc8an5z24"))))
     (build-system emacs-build-system)
     (arguments
      `(#:emacs ,emacs                   ;need D-Bus
@@ -27594,14 +27594,14 @@ work on alists, hash-table and arrays.  All functions are prefixed with
 (define-public emacs-xref
   (package
     (name "emacs-xref")
-    (version "1.0.4")
+    (version "1.1.0")
     (source
      (origin
        (method url-fetch)
-       (uri (string-append "https://elpa.gnu.org/packages/"
-                           "xref-" version ".el"))
+       (uri (string-append "https://elpa.gnu.org/packages/xref-"
+                           version ".tar"))
        (sha256
-        (base32 "0hkm59qqlsfw3w9ws9xhpmmz30ylifmh05a00ba58zvv1kz04x1g"))))
+        (base32 "1s7pwk09bry4nqr4bc78a3mbwyrxagai2gpsd49x47czy2x7m3ax"))))
     (build-system emacs-build-system)
     (home-page "http://elpa.gnu.org/packages/xref.html")
     (synopsis "Cross-referencing commands")

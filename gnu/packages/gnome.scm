@@ -4927,17 +4927,18 @@ libxml to ease remote use of the RESTful API.")
        ("gnutls" ,gnutls)                         ;for 'certtool'
        ("httpd" ,httpd)))
     (propagated-inputs
-     ;; libsoup-2.4.pc refers to all these.
+     ;; libsoup-2.4.pc refers to all of these (except where otherwise noted)
      `(("brotli" ,google-brotli)
        ("glib" ,glib)
+       ("glib-networking" ,glib-networking)       ; for GIO runtime modules
        ("libpsl" ,libpsl)
        ("libxml2" ,libxml2)
        ("sqlite" ,sqlite)
        ("zlib" ,zlib)))
     (inputs
-     `(("glib-networking" ,glib-networking)
-       ("mit-krb5" ,mit-krb5)))
-    (home-page "https://live.gnome.org/LibSoup/")
+     `(("mit-krb5" ,mit-krb5)
+       ("ntlm_auth" ,samba))) ; For ntlm_auth support
+    (home-page "https://wiki.gnome.org/Projects/libsoup")
     (synopsis "GLib-based HTTP Library")
     (description
      "LibSoup is an HTTP client/server library for GNOME.  It uses GObjects
