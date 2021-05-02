@@ -219,43 +219,93 @@
 (define-public emacs-geiser
   (package
     (name "emacs-geiser")
-    (version "0.12")
+    (version "0.13")
     (source
      (origin
        (method git-fetch)
        (uri (git-reference
-             (url "https://gitlab.com/jaor/geiser/")
+             (url "https://gitlab.com/emacs-geiser/geiser.git")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0n718xpys7v94zaf9lpmsx97qgn6qxif1acr718wyvpmfr4hiv08"))))
-    (build-system gnu-build-system)
+        (base32 "0bwjcfmcyv6z0i5ivqirgcibxdkrlf5vyxcbj7k8dk7flwg1fpd9"))
+       (patches
+        (search-patches "emacs-geiser-autoload-activate-implementation.patch"))))
+    (build-system emacs-build-system)
     (arguments
      '(#:phases
        (modify-phases %standard-phases
-         (add-after 'install 'post-install
-           (lambda* (#:key outputs #:allow-other-keys)
-             (symlink "geiser-install.el"
-                      (string-append (assoc-ref outputs "out")
-                                     "/share/emacs/site-lisp/"
-                                     "geiser-autoloads.el"))
-             #t)))))
-    (inputs
-     `(("guile" ,guile-2.2)))
+         ;; Move the source files to the top level, which is included in
+         ;; the EMACSLOADPATH.
+         (add-after 'unpack 'move-source-files
+           (lambda _
+             (let ((el-files (find-files "./elisp" ".*\\.el$")))
+               (for-each (lambda (f)
+                           (rename-file f (basename f)))
+                         el-files))
+             #t))
+         (add-before 'install 'make-info
+           (lambda _
+             (with-directory-excursion "doc"
+               (invoke "makeinfo" "--no-split"
+                       "-o" "geiser.info" "geiser.texi")))))))
     (native-inputs
-     `(("emacs" ,emacs-minimal)
-       ("autoconf" ,autoconf)
-       ("automake" ,automake)
-       ("texinfo" ,texinfo)))
+     `(("texinfo" ,texinfo)))
     (home-page "https://nongnu.org/geiser/")
-    (synopsis "Collection of Emacs modes for Guile and Racket hacking")
+    (synopsis "Collection of Emacs modes for Scheme hacking")
     (description
      "Geiser is a collection of Emacs major and minor modes that conspire with
 one or more Scheme implementations to keep the Lisp Machine Spirit alive.  The
 continuously running Scheme interpreter takes the center of the stage in
 Geiser.  A bundle of Elisp shims orchestrates the dialog between the Scheme
 implementation, Emacs and, ultimately, the schemer, giving them access to live
-metadata.")
+metadata.
+
+This package provides just the core of Geiser.  To effectively use it with your
+favourite Scheme implementation, you also need the corresponding geiser package,
+e.g. emacs-geiser-guile for Guile.")
+    (license license:bsd-3)))
+
+(define-public emacs-geiser-guile
+  (package
+    (name "emacs-geiser-guile")
+    (version "0.13")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://gitlab.com/emacs-geiser/guile.git")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0w264pjwlxna31260ll6gd0n77jlynhzf3h2dws5wr7jflns5mbc"))
+       (patches (search-patches
+                 "emacs-geiser-guile-auto-activate.patch"))))
+    (build-system emacs-build-system)
+    (arguments
+     '(#:include (cons "^src/" %default-include)
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'make-autoloads 'patch-autoloads
+           (lambda* (#:key outputs #:allow-other-keys)
+             (substitute* (string-append
+                           (elpa-directory (assoc-ref outputs "out"))
+                           "/geiser-guile-autoloads.el")
+               ;; Activating implementations fails when Geiser is not yet
+               ;; loaded, so let's defer that until it is.
+               (("\\(geiser-activate-implementation .*\\)" all)
+                (string-append
+                 "(eval-after-load 'geiser-impl '" all ")")))
+             #t)))))
+    (inputs
+     `(("guile" ,guile-2.2)))
+    (propagated-inputs
+     `(("geiser" ,emacs-geiser)))
+    (home-page "https://nongnu.org/geiser/")
+    (synopsis "Guile Scheme support for Geiser")
+    (description
+     "This package adds support for the Guile Scheme implementation to Geiser,
+a generic Scheme interaction mode for the GNU Emacs editor.")
     (license license:bsd-3)))
 
 (define-public emacs-ac-geiser
@@ -299,16 +349,7 @@ using geiser.")
         (base32 "0rxncnzx7qgcpvc8nz0sd8r0hwrplazzraahdwhbpq0q6z8ywqgg"))))
     (build-system emacs-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-after 'install 'install-scheme
-           (lambda* (#:key outputs #:allow-other-keys)
-             (install-file
-              "geiser-gauche.scm"
-              (string-append
-               (assoc-ref outputs "out")
-               "/share/emacs/site-lisp"))
-             #t)))))
+     `(#:include (cons "^geiser-gauche\\.scm$" %default-include)))
     (native-inputs
      `(("geiser" ,emacs-geiser)))
     (home-page "https://gitlab.com/emacs-geiser/gauche")
@@ -534,7 +575,7 @@ on stdout instead of using a socket as the Emacsclient does.")
                  (make-file-writable "libgit.el")
                  (emacs-substitute-variables "libgit.el"
                    ("libgit--module-file"
-                    (string-append out "/share/emacs/site-lisp/libegit2.so")))
+                    (string-append (emacs:elpa-directory out) "/libegit2.so")))
                  #t)))
            (add-before 'install 'prepare-for-install
              (lambda _
@@ -1105,6 +1146,19 @@ for editing Racket's Scribble documentation syntax in Emacs.")
        (sha256
         (base32 "0q2pb3w8s833fjhkzicciw2php4lsnismad1dnwgp2lcway757ra"))))
     (build-system gnu-build-system)
+    (arguments
+     `(#:modules ((guix build gnu-build-system)
+                  ((guix build emacs-build-system) #:prefix emacs:)
+                  (guix build utils))
+       #:imported-modules (,@%gnu-build-system-modules
+                           (guix build emacs-build-system)
+                           (guix build emacs-utils))
+       #:configure-flags (list (string-append "--with-lispdir="
+                                              (emacs:elpa-directory %output)))
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'expand-load-path
+           (assoc-ref emacs:%standard-phases 'expand-load-path)))))
     (native-inputs
     `(("autoconf" ,autoconf)
       ("automake" ,automake)
@@ -1218,7 +1272,11 @@ replacement.")
                                          "/bin/emacs"))
        #:modules ((ice-9 match)
                   (srfi srfi-26)
+                  ((guix build emacs-build-system) #:prefix emacs:)
                   ,@%gnu-build-system-modules)
+       #:imported-modules (,@%gnu-build-system-modules
+                           (guix build emacs-build-system)
+                           (guix build emacs-utils))
        #:phases
        (modify-phases %standard-phases
          (delete 'configure)
@@ -1259,7 +1317,7 @@ replacement.")
          (replace 'install
            (lambda* (#:key outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))
-                    (el-dir (string-append out "/share/emacs/site-lisp"))
+                    (el-dir (emacs:elpa-directory out))
                     (doc (string-append
                           out "/share/doc/haskell-mode-" ,version))
                     (info (string-append out "/share/info")))
@@ -1698,14 +1756,16 @@ or unexpected behavior inside an elisp configuration file (typically
               ("imagemagick" ,imagemagick)))
     (arguments
      `(#:modules ((guix build gnu-build-system)
+                  ((guix build emacs-build-system) #:prefix emacs:)
                   (guix build utils)
                   (guix build emacs-utils))
        #:imported-modules (,@%gnu-build-system-modules
+                           (guix build emacs-build-system)
                            (guix build emacs-utils))
        #:configure-flags
        (let ((out (assoc-ref %outputs "out")))
          (list (string-append "--with-lispdir="
-                              out "/share/emacs/site-lisp")
+                              (emacs:elpa-directory out))
                (string-append "--with-icondir="
                               out "/share/images/emacs-w3m")
                ;; Leave .el files uncompressed, otherwise GC can't
@@ -1750,8 +1810,7 @@ or unexpected behavior inside an elisp configuration file (typically
            (lambda* (#:key outputs #:allow-other-keys)
              (invoke "make" "install" "install-icons")
              (with-directory-excursion
-                 (string-append (assoc-ref outputs "out")
-                                "/share/emacs/site-lisp")
+                 (emacs:elpa-directory (assoc-ref outputs "out"))
                (for-each delete-file '("ChangeLog" "ChangeLog.1"))
                (symlink "w3m-load.el" "w3m-autoloads.el")
                #t))))))
@@ -1771,35 +1830,18 @@ or unexpected behavior inside an elisp configuration file (typically
                                   version ".orig.tar.gz"))
               (sha256
                (base32 "10byvyv9dk0ib55gfqm7bcpxmx2qbih1jd03gmihrppr2mn52nff"))))
-    (build-system gnu-build-system)
+    (build-system emacs-build-system)
     (inputs `(("wget" ,wget)))
     (native-inputs `(("emacs" ,emacs-minimal)))
     (arguments
-     `(#:modules ((guix build gnu-build-system)
-                  (guix build utils)
-                  (guix build emacs-utils))
-       #:imported-modules (,@%gnu-build-system-modules
-                           (guix build emacs-utils))
-       #:tests? #f  ; no check target
+     `(#:tests? #f  ; no check target
        #:phases
        (modify-phases %standard-phases
-         (replace 'configure
-           (lambda* (#:key outputs #:allow-other-keys)
-             (substitute* "Makefile"
-               (("/usr/local") (assoc-ref outputs "out"))
-               (("/site-lisp/emacs-wget") "/site-lisp"))
-             #t))
-         (add-before 'build 'patch-exec-paths
+         (add-after 'unpack 'patch-exec-paths
            (lambda* (#:key inputs outputs #:allow-other-keys)
              (let ((wget (assoc-ref inputs "wget")))
                (emacs-substitute-variables "wget.el"
                  ("wget-command" (string-append wget "/bin/wget"))))
-             #t))
-         (add-after 'install 'post-install
-           (lambda* (#:key outputs #:allow-other-keys)
-             (emacs-generate-autoloads
-              "wget" (string-append (assoc-ref outputs "out")
-                                    "/share/emacs/site-lisp/"))
              #t)))))
     (home-page "https://www.emacswiki.org/emacs/EmacsWget")
     (synopsis "Simple file downloader for Emacs based on wget")
@@ -2404,8 +2446,7 @@ a set of simplified face specifications and a user-supplied color palette")
      `(("emacs" ,emacs-minimal)))
     (arguments
      `(#:configure-flags
-       (list (string-append "--with-howmdir=" %output
-                            "/share/emacs/site-lisp/"))
+       (list (string-append "--with-howmdir=" (emacs:elpa-directory %output)))
        #:modules ((guix build gnu-build-system)
                   ((guix build emacs-build-system) #:prefix emacs:)
                   (guix build utils))
@@ -2996,8 +3037,8 @@ during idle time, while Emacs is doing nothing else.")
                ;; upgrading" that pdf-tools tries to perform.
                (emacs-substitute-variables "pdf-tools.el"
                  ("pdf-tools-handle-upgrades" '()))))
-           (add-after 'emacs-patch-variables 'emacs-add-source-to-load-path
-             (assoc-ref emacs:%standard-phases 'add-source-to-load-path))
+           (add-after 'emacs-patch-variables 'emacs-expand-load-path
+             (assoc-ref emacs:%standard-phases 'expand-load-path))
            (add-after 'emacs-add-source-to-load-path 'emacs-install
              (assoc-ref emacs:%standard-phases 'install))
            (add-after 'emacs-install 'emacs-build
@@ -3071,8 +3112,8 @@ type, for example: packages, buffers, files, etc.")
     (license license:gpl3+)))
 
 (define-public emacs-guix
-  (let* ((commit "a694fdbcedb6edd2239a31d326e475c763ee32f8")
-         (revision "3"))
+  (let ((commit "8ce6d219e87c5097abff9ce6f1f5a4293cdfcb31")
+        (revision "4"))
     (package
       (name "emacs-guix")
       (version (git-version "0.5.2" revision commit))
@@ -3080,13 +3121,30 @@ type, for example: packages, buffers, files, etc.")
                 (method git-fetch)
                 (uri (git-reference
                       ;; TODO: Use the official version when it has a new home
-                      (url "https://github.com/jsoo1/guix.el")
+                      (url "https://github.com/alezost/guix.el")
                       (commit commit)))
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "1pqw7zbgxzwpig4xr0izc3z8h80c72i6bl5yi12br0d7aq6dbkvj"))))
+                  "0awbd8x154c4dk4av7inpgd63n07xzng84vvc8qckmgljknc0j7k"))))
       (build-system gnu-build-system)
+      (arguments
+       `(#:modules ((guix build gnu-build-system)
+                    ((guix build emacs-build-system) #:prefix emacs:)
+                    (guix build utils))
+         #:imported-modules (,@%gnu-build-system-modules
+                             (guix build emacs-build-system)
+                             (guix build emacs-utils))
+         #:configure-flags
+         (list (string-append "--with-lispdir="
+                              (emacs:elpa-directory (assoc-ref %outputs "out"))))
+         #:phases
+         (modify-phases %standard-phases
+           (add-after 'unpack 'expand-load-path
+             (lambda _
+               ((assoc-ref emacs:%standard-phases 'expand-load-path)
+                #:prepend-source? #f)
+               #t)))))
       (native-inputs
        `(("autoconf" ,autoconf)
          ("automake" ,automake)
@@ -3099,6 +3157,7 @@ type, for example: packages, buffers, files, etc.")
          ("guix" ,guix)))
       (propagated-inputs
        `(("geiser" ,emacs-geiser)
+         ("geiser-guile" ,emacs-geiser-guile)
          ("guile-gcrypt" ,guile-gcrypt)
          ("dash" ,emacs-dash)
          ("bui" ,emacs-bui)
@@ -5105,7 +5164,8 @@ repetitions for example).")
         (base32 "0cs5r0ik6a3bl1k3imjl0r8y1i69kx9x9m9cgxj470qk34brwyj5"))))
     (propagated-inputs
      `(("emacs-flycheck" ,emacs-flycheck)
-       ("emacs-geiser" ,emacs-geiser)))
+       ("emacs-geiser" ,emacs-geiser)
+       ("emacs-geiser-guile" ,emacs-geiser-guile)))
     (build-system emacs-build-system)
     (home-page "https://github.com/flatwhatson/flycheck-guile")
     (synopsis "GNU Guile support for Flycheck")
@@ -5245,9 +5305,15 @@ completion of relevant keywords.")
          (file-name (string-append name "-" version "-checkout"))))
       (build-system gnu-build-system)
       (arguments
-       `(#:configure-flags
-         (list (string-append "--with-lispdir=" (assoc-ref %outputs "out")
-                              "/share/emacs/site-lisp/"))
+       `(#:modules ((guix build gnu-build-system)
+                    ((guix build emacs-build-system) #:prefix emacs:)
+                    (guix build utils))
+         #:imported-modules (,@%gnu-build-system-modules
+                             (guix build emacs-build-system)
+                             (guix build emacs-utils))
+         #:configure-flags
+         (list (string-append "--with-lispdir="
+                              (emacs:elpa-directory (assoc-ref %outputs "out"))))
          #:tests? #f                    ;no test suite
          #:phases
          (modify-phases %standard-phases
@@ -6183,12 +6249,11 @@ to a key in your preferred mode.")
              (lambda* (#:key outputs #:allow-other-keys)
                (substitute* "el/CMakeLists.txt"
                  (("share/emacs/site-lisp/SuperCollider")
-                  (string-append
-                   "share/emacs/site-lisp")))
+                  (elpa-directory (assoc-ref outputs "out"))))
                ((assoc-ref cmake:%standard-phases 'configure)
                 #:outputs outputs
                 #:configure-flags '("-DSC_EL_BYTECOMPILE=OFF"))))
-           (add-after 'add-source-to-load-path 'add-el-dir-to-emacs-load-path
+           (add-after 'expand-load-path 'add-el-dir-to-emacs-load-path
              (lambda _
                (setenv "EMACSLOADPATH"
                        (string-append (getcwd) "/el:" (getenv "EMACSLOADPATH")))
@@ -7501,7 +7566,7 @@ style, or as multiple word prefixes.")
 (define-public emacs-consult
   (package
     (name "emacs-consult")
-    (version "0.6")
+    (version "0.7")
     (source
      (origin
        (method git-fetch)
@@ -7509,7 +7574,7 @@ style, or as multiple word prefixes.")
              (url "https://github.com/minad/consult")
              (commit version)))
        (sha256
-        (base32 "09n3q3dyi83s4fk4z7csnjicbxd69ws4zp4371c1lbxcvvq2fdnd"))
+        (base32 "1kzwybp87srckd1238drdcn9h7jyyqz9pzcwvw3ld8bgyyrwsxkj"))
        (file-name (git-file-name name version))))
     (build-system emacs-build-system)
     (propagated-inputs
@@ -7525,7 +7590,7 @@ list of candidates.")
 (define-public emacs-marginalia
   (package
     (name "emacs-marginalia")
-    (version "0.4")
+    (version "0.5")
     (source
      (origin
        (method git-fetch)
@@ -7534,7 +7599,7 @@ list of candidates.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0piwzxp1zmwp876kyca0xcgyxgn8bn4wh5fnn88dkvdzi8mcgmkh"))))
+        (base32 "07vfidgq9am07zz2ydhdifmp4jmgs9jn5l1nfqiyp16sd1br6czj"))))
     (build-system emacs-build-system)
     (home-page "https://github.com/minad/marginalia")
     (synopsis "Marginalia in the minibuffer completions")
@@ -7805,7 +7870,7 @@ after buffer changes.")
                                "(require-relative-list \
 '(\"../../common/run\") \"realgud:\")\n")))
              #t))
-         (add-after 'unpack 'fix-autogen-script
+         (add-after 'expand-load-path 'fix-autogen-script
            (lambda _
              (substitute* "autogen.sh"
                (("./configure") "sh configure"))
@@ -8903,14 +8968,7 @@ mode with the package emacs-julia-mode.")
                 "065ix3jycsx3wvkq7a6060i93caxisdvgxgqb1l6rq15n4qln78y"))))
     (build-system emacs-build-system)
     (arguments
-     `(#:phases
-       (modify-phases %standard-phases
-         (add-after 'install 'JuliaSnail-jl
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let ((out (assoc-ref outputs "out")))
-               (install-file "JuliaSnail.jl"
-                             (string-append out "/share/emacs/site-lisp/")))
-             #t)))))
+     `(#:include (cons "^JuliaSnail\\.jl" %default-include)))
     (inputs
      `(("emacs-dash" ,emacs-dash)
        ("emacs-s" ,emacs-s)
@@ -10449,31 +10507,35 @@ inside the source file.")
          (file-name (git-file-name name version))
          (sha256
           (base32
-           "1hxniaxifdw3m4y4yssgy22xcmmf558wx7rpz66wy5hwybjslf7b"))))
+           "1hxniaxifdw3m4y4yssgy22xcmmf558wx7rpz66wy5hwybjslf7b"))
+         (modules '((guix build utils)))
+         (snippet
+          '(begin
+             (map delete-file (find-files "." ".*-autoloads\\.elc?$"))
+             #t))))
       (build-system emacs-build-system)
       (inputs
        `(("cl-agnostic-lizard" ,cl-agnostic-lizard)))
       (propagated-inputs
        `(("emacs-sly" ,emacs-sly)))
       (arguments
-       '(#:include (cons* "\\.lisp$" "\\.asd$" %default-include)
+       `(#:include (cons* "\\.lisp$" "\\.asd$" %default-include)
          #:phases
          (modify-phases %standard-phases
-           ;; The package provides autoloads.
-           (delete 'make-autoloads)
-           (delete 'enable-autoloads-compilation)
-           (add-after 'add-source-to-load-path 'add-contrib-to-emacs-load-path
+           (add-after 'expand-load-path 'expand-sly-contrib
              (lambda* (#:key inputs #:allow-other-keys)
-               (let ((sly (assoc-ref inputs "emacs-sly")))
+               (let* ((sly (assoc-ref inputs "emacs-sly"))
+                      (contrib (find-files sly "^contrib$" #:directories? #t)))
                  (setenv "EMACSLOADPATH"
-                         (string-append sly "/share/emacs/site-lisp/contrib:"
-                                        (getenv "EMACSLOADPATH"))))
-               #t))
+                         (string-append (string-join contrib ":")
+                                        ":"
+                                        (getenv "EMACSLOADPATH")))
+                 #t)))
            (add-after 'install 'find-agnostic-lizard
              (lambda* (#:key inputs outputs #:allow-other-keys)
                (let* ((out (assoc-ref outputs "out"))
-                      (file (string-append out "/share/emacs/site-lisp/"
-                                           "slynk-stepper.lisp"))
+                      (file (string-append (elpa-directory out)
+                                           "/slynk-stepper.lisp"))
                       (asd (string-append
                             (assoc-ref inputs "cl-agnostic-lizard")
                             "/share/common-lisp/systems/agnostic-lizard.asd")))
@@ -11235,8 +11297,7 @@ programming and reproducible research.")
                     (duplicates (lset-intersection string=?
                                                    contrib-files
                                                    org+contrib-files)))
-               (with-directory-excursion
-                   (string-append out "/share/emacs/site-lisp")
+               (with-directory-excursion (elpa-directory out)
                  (for-each delete-file duplicates))
                #t))))))
     (propagated-inputs
@@ -12702,13 +12763,13 @@ containing words from the Rime project.")
 (define-public emacs-pyim
   (package
     (name "emacs-pyim")
-    (version "3.2")
+    (version "3.6")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "https://elpa.gnu.org/packages/pyim-" version ".tar"))
        (sha256
-        (base32 "1rr9mq334dqf7mx1ii7910zkigw7chl63iws4sw0qsn014kjlb0a"))))
+        (base32 "1fmbzh33s9xdvrfjhkqr9ydcqbiv8lr04k5idvbpc9vwjjjan5y0"))))
     (build-system emacs-build-system)
     (propagated-inputs
      `(("emacs-async" ,emacs-async)
@@ -13316,8 +13377,7 @@ variable instead, to remind you of that variable's meaning.")
 				      (getenv "TMPDIR") "/source")))
 	       (substitute* "bin/ert-runner"
 		 (("ERT_RUNNER=\"\\$\\(dirname \\$\\(dirname \\$0\\)\\)")
-		  (string-append "ERT_RUNNER=\"" out
-				 "/share/emacs/site-lisp")))
+		  (string-append "ERT_RUNNER=\"" (elpa-directory out))))
 	       (install-file "bin/ert-runner" (string-append out "/bin"))
 	       (wrap-program (string-append out "/bin/ert-runner")
 		 (list "EMACSLOADPATH" ":" 'prefix
@@ -13692,7 +13752,7 @@ or @code{treemacs}, but leveraging @code{Dired} to do the job of display.")
 (define-public emacs-which-key
   (package
     (name "emacs-which-key")
-    (version "3.5.1")
+    (version "3.5.2")
     (source
      (origin
        (method git-fetch)
@@ -13701,7 +13761,7 @@ or @code{treemacs}, but leveraging @code{Dired} to do the job of display.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1g07i6hyv9glhk6xq1z9vn81vi2f0byy7dp3rg4gw22sm6f6d1al"))))
+        (base32 "1wgygby4zwlbx6ry6asraaixl169qdz092zgk1brvg63w7f8vkkb"))))
     (build-system emacs-build-system)
     (arguments
      `(#:tests? #t
@@ -15624,7 +15684,6 @@ object has been freed.")
                   (srfi srfi-26))
        #:phases
        (modify-phases %standard-phases
-         (delete 'build) ;‘build-emacsql-sqlite’ compiles ‘*.el’ files.
          (add-before 'install 'patch-elisp-shell-shebangs
            (lambda _
              (substitute* (find-files "." "\\.el")
@@ -15635,7 +15694,7 @@ object has been freed.")
              (setenv "SHELL" "sh")))
          (add-after 'setenv-shell 'build-emacsql-sqlite
            (lambda _
-             (invoke "make" "binary" "CC=gcc")))
+             (invoke "make" "binary" (string-append "CC=" ,(cc-for-target)))))
          (add-after 'build-emacsql-sqlite 'install-emacsql-sqlite
            ;; This build phase installs emacs-emacsql binary.
            (lambda* (#:key outputs #:allow-other-keys)
@@ -15656,16 +15715,7 @@ object has been freed.")
                  ;; in the right place.
                  ("(defvar emacsql-sqlite-executable"
                   (string-append (assoc-ref outputs "out")
-                                 "/bin/emacsql-sqlite"))))))
-         (replace 'install
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out")))
-               (install-file "sqlite/emacsql-sqlite"
-                             (string-append out "/bin"))
-               (for-each (cut install-file <>
-                              (string-append out "/share/emacs/site-lisp"))
-                         (find-files "." "\\.elc*$")))
-             #t)))))
+                                 "/bin/emacsql-sqlite")))))))))
     (inputs
      `(("emacs-minimal" ,emacs-minimal)
        ("mariadb" ,mariadb "lib")
@@ -21572,17 +21622,21 @@ asynchronous communications, the RPC response is fairly good.")
        `(#:include '("\\.el$" "\\.pl$")
          #:phases
          (modify-phases %standard-phases
-           (add-after 'install 'patch-path
-             (lambda* (#:key inputs outputs #:allow-other-keys)
-               (let ((perl (assoc-ref inputs "perl"))
-                     (dir (string-append  (assoc-ref outputs "out")
-                                          "/share/emacs/site-lisp")))
-                 (substitute* (string-append dir  "/edbi.el")
+           (add-after 'unpack 'patch-path
+             (lambda* (#:key inputs #:allow-other-keys)
+               (let ((perl (assoc-ref inputs "perl")))
+                 (substitute* "edbi.el"
                    (("\"perl\"") (string-append "\"" perl "/bin/perl\"")))
-                 (chmod (string-append dir "/edbi-bridge.pl") #o555)
-                 (wrap-program (string-append dir "/edbi-bridge.pl")
-                   `("PERL5LIB" ":" prefix (,(getenv "PERL5LIB"))))
-                 #t))))))
+                 #t)))
+           (add-after 'wrap 'wrap-edbi-bridge
+             (lambda* (#:key inputs outputs #:allow-other-keys)
+               (let* ((out (assoc-ref outputs "out"))
+                      (bridge (string-append (elpa-directory out)
+                                             "/edbi-bridge.pl")))
+                 (chmod bridge #o555)
+                 (wrap-program bridge
+                   `("PERL5LIB" ":" prefix (,(getenv "PERL5LIB")))))
+               #t)))))
       (synopsis "Database Interface for Emacs Lisp")
       (description "This program connects the database server through Perl's
 DBI, and provides DB-accessing API and the simple management UI.")
@@ -21735,7 +21789,7 @@ stored playlists.")
                              (guix build cmake-build-system))
          #:phases
          (modify-phases %standard-phases
-           (add-before 'add-source-to-load-path 'substitute-vterm-module-path
+           (add-after 'unpack 'substitute-vterm-module-path
              (lambda* (#:key outputs #:allow-other-keys)
                (chmod "vterm.el" #o644)
                (emacs-substitute-sexps "vterm.el"
@@ -25303,7 +25357,7 @@ other @code{helm-type-file} sources such as @code{helm-locate}.")
              (lambda _
                (substitute* "server/Makefile"
                  (("CC=cc")
-                  "CC=gcc")
+                  ,(string-append "CC=" (cc-for-target)))
                  (("INSTALL_PREFIX=\\$\\(HOME\\)/.telega")
                   (string-append "INSTALL_PREFIX=" (assoc-ref %outputs "out")
                                  "/bin"))
@@ -25311,7 +25365,9 @@ other @code{helm-type-file} sources such as @code{helm-locate}.")
                  (("python3 run_tests.py")
                   ""))
                #t))
-           (add-after 'check 'telega-paths-patch
+           (add-after 'unpack 'expand-load-path
+             (assoc-ref emacs:%standard-phases 'expand-load-path))
+           (add-after 'unpack 'patch-sources
              (lambda* (#:key inputs #:allow-other-keys)
                ;; Hard-code paths to `ffplay` and `ffmpeg`.
                (let ((ffplay-bin (string-append (assoc-ref inputs "ffmpeg")
@@ -25327,24 +25383,15 @@ other @code{helm-type-file} sources such as @code{helm-locate}.")
                     (string-append
                      "(and (file-executable-p \"" ffmpeg-bin "\")"
                      "\"" ffmpeg-bin "\")"))))
-               ;; Modify telega-util to reflect unique dir name in
-               ;; `telega-install-data' phase.
-               (substitute* "telega-util.el"
-                 (("\\(concat \"etc/\" filename\\) telega--lib-directory")
-                  "(concat \"telega-data/\" filename)
-                    (locate-dominating-file telega--lib-directory
-                                            \"telega-data\")"))
-               ;; Modify telega.el to reflect unique dir name in
-               ;; `telega-install-contrib' phase.
+               ;; This would push the "contrib" sources to the load path,
+               ;; but as contrib is not installed alongside telega, it does
+               ;; nothing.
                (substitute* "telega.el"
-                 (("\\(push \\(expand-file-name \"contrib\" telega--lib-directory\\) load-path\\)")
-                  "(push (expand-file-name \"telega-contrib\"
-                     (locate-dominating-file telega--lib-directory
-                                             \"telega-contrib\")) load-path)"))
+                 (("\\(push .* load-path\\)") ""))
                #t))
            ;; The server test suite has a hardcoded path.
            ;; Reset this behavior to use the proper path.
-           (add-after 'unpack 'server-suite-patch
+           (add-after 'unpack 'patch-test-suite
              (lambda _
                (substitute* "server/run_tests.py"
                  (("~/.telega/telega-server")
@@ -25356,39 +25403,14 @@ other @code{helm-type-file} sources such as @code{helm-locate}.")
                (invoke "python3" "server/run_tests.py")
                #t))
            (delete 'configure)
-           ;; Build emacs-side using `emacs-build-system'
-           (add-after 'compress-documentation 'emacs-add-source-to-load-path
-             (assoc-ref emacs:%standard-phases 'add-source-to-load-path))
-	   ;; Manually invoke bytecompilation for the contrib
-	   ;; subdirectory.
-           (add-after 'emacs-add-source-to-load-path 'emacs-bytecomp-contrib
-             (lambda _
-	       (substitute* "Makefile"
-                 (("byte-recompile-directory \".\"")
-                  "byte-recompile-directory \"contrib\""))
-               (invoke "make" "compile")
-	       #t))
-           (add-after 'emacs-bytecomp-contrib 'emacs-install
-             (assoc-ref emacs:%standard-phases 'install))
-           ;; This step installs subdir /etc, which contains images, sounds and
-           ;; various other data, next to the site-lisp dir.
-           (add-after 'emacs-install 'telega-install-data
-             (lambda* (#:key outputs #:allow-other-keys)
-               (copy-recursively
-                "etc"
-                (string-append (assoc-ref outputs "out")
-                               "/share/emacs/telega-data/"))
-               #t))
-           (add-after 'emacs-install 'telega-install-contrib
-             (lambda* (#:key outputs #:allow-other-keys)
-               (copy-recursively
-                "contrib"
-                (string-append (assoc-ref outputs "out")
-                               "/share/emacs/telega-contrib"))
-               #t))
-           (add-after 'telega-install-contrib 'emacs-build
+           (add-after 'expand-load-path 'emacs-install
+             (lambda args
+               (apply (assoc-ref emacs:%standard-phases 'install)
+                      #:include `("etc" ,@emacs:%default-include)
+                      args)))
+           (add-after 'emacs-install 'emacs-build
              (assoc-ref emacs:%standard-phases 'build))
-           (add-after 'telega-install-contrib 'emacs-make-autoloads
+           (add-after 'emacs-install 'emacs-make-autoloads
              (assoc-ref emacs:%standard-phases 'make-autoloads)))))
       (inputs
        `(("ffmpeg" ,ffmpeg))) ; mp4/gif support.
@@ -25413,6 +25435,21 @@ other @code{helm-type-file} sources such as @code{helm-locate}.")
 Telegram messaging platform.")
       (home-page "https://zevlg.github.io/telega.el/")
       (license license:gpl3+))))
+
+(define-public emacs-telega-contrib
+  (package/inherit emacs-telega
+    (name "emacs-telega-contrib")
+    (build-system emacs-build-system)
+    (arguments
+     `(#:exclude '("telega-live-location.el")
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'chdir
+           (lambda _ (chdir "contrib") #t)))))
+    (propagated-inputs
+     `(("emacs-telega" ,emacs-telega)
+       ("emacs-alert" ,emacs-alert)
+       ("emacs-all-the-icons" ,emacs-all-the-icons)))))
 
 (define-public emacs-doom-modeline
   (package

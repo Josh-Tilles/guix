@@ -788,7 +788,7 @@ authentication.")
 (define-public pidgin
   (package
     (name "pidgin")
-    (version "2.14.3")
+    (version "2.14.4")
     (source
      (origin
        (method url-fetch)
@@ -796,7 +796,7 @@ authentication.")
         (string-append "mirror://sourceforge/pidgin/Pidgin/"
                        version "/pidgin-" version ".tar.gz"))
        (sha256
-        (base32 "0vdfnm96m1kh4gm6xn6i7s9c5zjh1p18jg4595k4p5bplvd6fmm8"))
+        (base32 "1h952bh2jdm9jymzpj4dgmh530yh7pag2janfz6d5m1r4mljwraq"))
        (patches
         (search-patches "pidgin-add-search-path.patch"))
        (modules '((guix build utils)))
@@ -863,7 +863,7 @@ authentication.")
                        (assoc-ref %build-inputs "gst-plugins-base")
                        "/include/gstreamer-1.0")
         "--disable-gtkspell"
-        ;; "--enable-gevolution"
+        "--disable-gevolution"
         "--enable-cap"
         "--enable-mono"
         "--enable-cyrus-sasl"
@@ -875,16 +875,7 @@ authentication.")
                        "/lib")
         (string-append "--with-tkconfig="
                        (assoc-ref %build-inputs "tk")
-                       "/lib"))
-       #:phases
-       (modify-phases %standard-phases
-         (add-before 'check 'eat-leftovers
-           ;; XXX Remove when updating beyond 2.14.3.  Equivalent to
-           ;; <https://keep.imfreedom.org/pidgin/pidgin/rev/d4d72fde60c2>.
-           (lambda _
-             ;; Remove a lingering [broken] oscar reference.
-             (substitute* "libpurple/tests/check_libpurple.c"
-               ((".*oscar_util_suite.*") "")))))))
+                       "/lib"))))
     (native-search-paths
      (list
       (search-path-specification
@@ -1030,7 +1021,7 @@ of xmpppy.")
 (define-public gajim
   (package
     (name "gajim")
-    (version "1.3.1")
+    (version "1.3.2")
     (source
      (origin
        (method url-fetch)
@@ -1039,7 +1030,7 @@ of xmpppy.")
                        (version-major+minor version)
                        "/gajim-" version ".tar.gz"))
        (sha256
-        (base32 "070h1n3miq99z6ln77plk3jlisgfqfs2yyn4rhchpf25zd8is1ba"))
+        (base32 "1vjzv8zg9s393xw81klcgbkn4h6j2blzla9iil5kqfrw7wmldskh"))
        (patches (search-patches "gajim-honour-GAJIM_PLUGIN_PATH.patch"))))
     (build-system python-build-system)
     (arguments

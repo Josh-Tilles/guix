@@ -217,6 +217,172 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-26))
 
+(define-public python-colorful
+  (package
+    (name "python-colorful")
+    (version "0.5.4")
+    (source
+     (origin
+       (method url-fetch)
+       (uri
+        (pypi-uri "colorful" version))
+       (sha256
+        (base32 "1sh7g2cn1fyz2hzmzs933razdxi2bna9i1lxa790r9pdwba8m146"))))
+    (build-system python-build-system)
+    ;; FIXME: tests cannot be computed:
+    ;; "Can't perform this operation for unregistered loader type"
+    (arguments
+     `(#:tests? #f))
+    (native-inputs
+     `(("python-coverage" ,python-coverage)
+       ("python-flake8" ,python-flake8)
+       ("python-pytest" ,python-pytest)))
+    (propagated-inputs
+     `(("python-colorama" ,python-colorama)))
+    (home-page "http://github.com/timofurrer/colorful")
+    (synopsis "Terminal string styling")
+    (description "Colorful provides an array of text styles, that can be used
+as functions or string constants to form colored terminal output.")
+    (license license:expat)))
+
+(define-public python-yaspin
+  (package
+    (name "python-yaspin")
+    (version "1.5.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri
+        (pypi-uri "yaspin" version))
+       (sha256
+        (base32 "1iirah0kydrdp505qnjj6gi54avcr7z0hbkfx9vmh8myr30rpz6q"))))
+    (build-system python-build-system)
+    (native-inputs
+     `(("python-pytest" ,python-pytest)))
+    (home-page "https://github.com/pavdmyt/yaspin")
+    (synopsis "Yet Another Terminal Spinner")
+    (description "Yaspin provides a terminal spinner to indicate the progress
+during long operations.")
+    (license license:expat)))
+
+(define-public python-lunr
+  (package
+    (name "python-lunr")
+    (version "0.6.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri
+        (pypi-uri "lunr" version))
+       (sha256
+        (base32 "106akalywfmnypzkdrhgz4n4740a8xayspybsw59kq06vz8i2qrc"))))
+    (build-system python-build-system)
+    (native-inputs
+     `(("python-mock" ,python-mock)
+       ("python-pytest" ,python-pytest)))
+    (propagated-inputs
+     `(("python-nltk" ,python-nltk-3.4)))
+    (home-page
+     "https://github.com/yeraydiazdiaz/lunr.py")
+    (synopsis "Full-text search library")
+    (description "This package provides python library for full-text search.
+It indexes documents and provides a search interface for retrieving documents
+that best match text queries.")
+    (license license:expat)))
+
+(define-public python-mkdocs
+  (package
+    (name "python-mkdocs")
+    (version "1.1.2")
+    (source
+     (origin
+       (method url-fetch)
+       (uri
+        (pypi-uri "mkdocs" version))
+       (sha256
+        (base32 "0fgv5zawpyyv0vd4j5y8m4h058lh9jkwfcm0xy4pg7dr09a1xdph"))))
+    (build-system python-build-system)
+    (arguments
+     `(#:phases
+       (modify-phases %standard-phases
+         ;; Requirements refer to a specific version of dependencies,
+         ;; which are too old. So we patch to refer to any later version.
+         (add-after 'unpack 'patch-requirements
+           (lambda _
+             (substitute* "setup.py"
+               (("==") ">=")))))))
+    (propagated-inputs
+     `(("python-click" ,python-click)
+       ("python-jinja2" ,python-jinja2)
+       ("python-livereload" ,python-livereload)
+       ("python-lunr" ,python-lunr)
+       ("python-markdown" ,python-markdown)
+       ("python-pyyaml" ,python-pyyaml)
+       ("python-tornado" ,python-tornado)))
+    (home-page "https://www.mkdocs.org")
+    (synopsis "Project documentation with Markdown")
+    (description "MkDocs is a static site generator geared towards building
+project documentation.  Documentation source files are written in Markdown, and
+configured with a single YAML configuration file.")
+    (license license:bsd-3)))
+
+(define-public python-pymdown-extensions
+  (package
+    (name "python-pymdown-extensions")
+    (version "8.1.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri
+        (pypi-uri "pymdown-extensions" version))
+       (sha256
+        (base32 "0d8pdndrl1kj105lq7r6kw2dnhcvll6h2qs07w71mcpi7gx728v3"))))
+    (build-system python-build-system)
+    ;; FIXME: "AssertionError: False is not true"
+    (arguments
+     `(#:tests? #f))
+    (propagated-inputs
+     `(("python-markdown" ,python-markdown)))
+    (home-page "https://github.com/facelessuser/pymdown-extensions")
+    (synopsis "Extension pack for Python Markdown")
+    (description "PyMdown Extensions is a collection of extensions for Python
+Markdown.  All extensions are found under the module namespace of pymdownx.")
+    (license license:expat)))
+
+(define-public python-mkdocs-material
+  (package
+    (name "python-mkdocs-material")
+    (version "7.1.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri
+        (pypi-uri "mkdocs-material" version))
+       (sha256
+        (base32 "0ci9xiasq9nfn09v11m7p49vzazdbgslw7rpzjd6y3hsmn9vljz3"))))
+    (build-system python-build-system)
+    (arguments
+     `(#:phases
+       (modify-phases %standard-phases
+         ;; Requirement mkdocs-material-extensions
+         ;; in-turn requires mkdocs-material. This causes
+         ;; circular dependency, so we remove this requirement.
+         (add-after 'unpack 'patch-requirements
+           (lambda _
+             (substitute* "requirements.txt"
+               (("mkdocs-material-extensions.*$") "")))))))
+    (propagated-inputs
+     `(("python-markdown" ,python-markdown)
+       ("python-mkdocs" ,python-mkdocs)
+       ("python-pygments" ,python-pygments)
+       ("python-pymdown-extensions"
+        ,python-pymdown-extensions)))
+    (home-page "https://squidfunk.github.io/mkdocs-material/")
+    (synopsis "Material Design theme for MkDocs")
+    (description "This package provides a theme plugin for the static site
+generator MkDocs.")
+    (license license:expat)))
+
 (define-public python-slixmpp
   (package
     (name "python-slixmpp")
@@ -15005,18 +15171,20 @@ extracting firmware images")
 (define-public python-nltk
   (package
     (name "python-nltk")
-    (version "3.2.1")
+    (version "3.6.2")
     (source (origin
               (method url-fetch)
-              (uri (pypi-uri "nltk" version))
+              (uri (pypi-uri "nltk" version ".zip"))
               (sha256
                (base32
-                "0skxbhnymwlspjkzga0f7x1hg3y50fwpfghs8g8k7fh6f4nknlym"))))
+                "1sq32lwgij9h8rsksymnxxr7bqfw3vgx5ijw4azbj6k2xnmmdmap"))))
     (build-system python-build-system)
     (arguments
      '(;; The tests require some extra resources to be downloaded.
        ;; TODO Try packaging these resources.
        #:tests? #f))
+    (native-inputs
+     `(("unzip" ,unzip)))
     (home-page "http://nltk.org/")
     (synopsis "Natural Language Toolkit")
     (description "It provides interfaces to over 50 corpora and lexical
@@ -15024,6 +15192,19 @@ resources such as WordNet, along with a suite of text processing libraries
 for classification, tokenization, stemming, tagging, parsing, and semantic
 reasoning, wrappers for natural language processing libraries.")
     (license license:asl2.0)))
+
+;; Versions >=3.5 breaks backward-compatibility,
+;; so we keep version 3.4.x around for a while.
+(define-public python-nltk-3.4
+  (package
+    (inherit python-nltk)
+    (version "3.4.5")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "nltk" version ".zip"))
+       (sha256
+        (base32 "153x2clrnigs74jdgnn3qmljdjj4gprmvpdvh49i18ls4m8mbm5y"))))))
 
 (define-public python2-nltk
   (package-with-python2 python-nltk))

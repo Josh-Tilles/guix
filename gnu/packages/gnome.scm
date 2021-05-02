@@ -1330,6 +1330,9 @@ a debugging tool, @command{gssdp-device-sniffer}.")
     `(("gssdp" ,gssdp)
       ("gtk+" ,gtk+)
       ("libsoup" ,libsoup)))
+   (propagated-inputs
+    `(;; For ‘org.gnome.system.proxy’.
+      ("gsettings-desktop-schemas" ,gsettings-desktop-schemas)))
    (synopsis "PnP API for GNOME")
    (description "This package provides GUPnP, an object-oriented framework
 for creating UPnP devices and control points, written in C using
@@ -3221,10 +3224,10 @@ the GNOME desktop environment.")
               (uri (string-append "mirror://gnome/sources/" name "/"
                                   (version-major+minor version)  "/"
                                   name "-" version ".tar.xz"))
+              (patches (search-patches "libcroco-CVE-2020-12825.patch"))
               (sha256
                (base32
                 "1m110rbj5d2raxcdp4iz0qp172284945awrsbdlq99ksmqsc4zkn"))))
-    (replacement libcroco/fixed)
     (build-system gnu-build-system)
     (native-inputs
      `(("pkg-config" ,pkg-config)))
@@ -3242,21 +3245,6 @@ XML/CSS rendering engine.")
 
     ;; LGPLv2.1-only.
     (license license:lgpl2.1)))
-
-(define libcroco/fixed
-  (package
-    (inherit libcroco)
-    (name "libcroco")
-    (version "0.6.13")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append "mirror://gnome/sources/" name "/"
-                                  (version-major+minor version)  "/"
-                                  name "-" version ".tar.xz"))
-              (sha256
-               (base32
-                "1m110rbj5d2raxcdp4iz0qp172284945awrsbdlq99ksmqsc4zkn"))
-              (patches (search-patches "libcroco-CVE-2020-12825.patch"))))))
 
 (define-public libgsf
   (package
@@ -8707,7 +8695,7 @@ core C library, and bindings for Python (PyGTK).")
 (define-public gnome-autoar
   (package
     (name "gnome-autoar")
-    (version "0.3.1")
+    (version "0.3.2")
     (source (origin
               (method url-fetch)
               (uri (string-append "mirror://gnome/sources/" name "/"
@@ -8715,7 +8703,7 @@ core C library, and bindings for Python (PyGTK).")
                                   name "-" version ".tar.xz"))
               (sha256
                (base32
-                "1y6hh5dldhdq7mpbmd571zl0yadfackvifhnxvykkqqddwz72y0f"))))
+                "0wkwix44yg126xn1v4f2j60bv9yiyadfpzf8ifx0bvd9x5f4v354"))))
     (build-system glib-or-gtk-build-system)
     (native-inputs
      `(("gobject-introspection" ,gobject-introspection)
