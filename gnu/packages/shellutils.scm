@@ -198,6 +198,7 @@ between various shells or commands.")
 (define-public trash-cli
   (package
     (name "trash-cli")
+    ;; (version "0.17.1.14")
     (version "0.21.4.18")
     (source
      (origin
@@ -208,8 +209,7 @@ between various shells or commands.")
          "01q0cl04ljf214z6s3g256gsxx3pqsgaf6ac1zh0vrq5bnhnr85h"))))
     (build-system python-build-system)
     (arguments
-     `(#:python ,python-2
-       #:tests? #f ; no tests
+     `(#:python ,python-3
        #:phases
        (modify-phases %standard-phases
          (add-before 'build 'patch-path-constants
@@ -234,7 +234,9 @@ are already there.")
 (define-public direnv
   (package
     (name "direnv")
-    (version "2.28.0")
+    ;;(version "2.18.0")
+    (version "2.26.0")
+    ;;(version "2.28.0")
     (source
      (origin (method git-fetch)
              (uri (git-reference
@@ -243,7 +245,9 @@ are already there.")
              (file-name (git-file-name name version))
              (sha256
               (base32
-               "1y18619pmhfl0vrf4w0h75ybkkwgi9wcb7d9kv4n8drg1xp4aw4w"))))
+               ;;"0p67hpshj5x8921760rcjyn2qjjbzf3kbiq8xdv5qnqscgyn4rb9"
+               "0yk53jn7wafklixclka17wyjjs2g5giigjr2bd0xzy10nrzwp7c9"
+               ))))
     (build-system go-build-system)
     (arguments
      '(#:import-path "github.com/direnv/direnv"
