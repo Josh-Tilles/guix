@@ -8275,8 +8275,8 @@ with @code{build-expression->derivation} (@pxref{Derivations,
 @section Build Phases
 
 @cindex build phases, for packages
-Almost all package build systems implement a notion @dfn{build phases}:
-a sequence of actions that the build system executes, when you build the
+Almost all package build systems implement a notion of @dfn{build phases}:
+a sequence of actions that the build system executes when you build the
 package, leading to the installed byproducts in the store.  A notable
 exception is the ``bare-bones'' @code{trivial-build-system}
 (@pxref{Build Systems}).
